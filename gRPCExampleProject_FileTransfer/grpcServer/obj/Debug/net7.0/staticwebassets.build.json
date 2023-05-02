@@ -1,0 +1,19 @@
+{
+  "Version": 1,
+  "Hash": "yH8XzvnfRjlSggZQpJJKV/R28hOkF6AoVOL10nAy7+U=",
+  "Source": "grpcServer",
+  "BasePath": "_content/grpcServer",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "grpcServer\\wwwroot",
+      "Source": "grpcServer",
+      "ContentRoot": "C:\\Users\\acdem\\OneDrive\\Masaüstü\\gRPCExampleProject_FileTransfer\\grpcServer\\wwwroot\\",
+      "BasePath": "_content/grpcServer",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": []
+}

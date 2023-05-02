@@ -1,0 +1,832 @@
+gRPC Nedir?
+
+- Google tarafından geliştirilmiş Remote-Procedure-Call(RPC) kütüphanesidir.
+
+Not: Google tarafından çıkarılan her bir sürüm için baş harfi 'g' ile başlayan ayrı anlam ifade etmektedir. 1.0 -> gRPC, 1.1 -> 'good', 1.2 -> 'green'
+
+RPC ne demektir?
+
+- Remote Procedure Call, Uzak Yordam Çağrısıdır.
+- Uzak sunucudaki metotları sanki kendi ortamının birer parçasıymış gibi çağırabilen sistemdir.
+
+gRPC; transport/iletişim/veri iletimi için http/2 protokolünü kullanmaktadır.
+
+Dolayısıyla  gRPC'nin faydalarını anlayabilmek için öncelikle Http/2'nin Http/1'e nazaran getirilerini anlamak gereklidir.
+
+Http/1: Her bir statik dosya için (.css, .js, .png vs.) ayrı istek gönderilmektedir. Bu durum ise yük ve maliyeti arttıracağından dolayı ekstradan bekleme süresinin artmasına sebebp olmaktadır.
+
+- Metin tabanlı(text based) protokoldür.
+- Her request'te sıkıştırılmamış vaziyette header gönderilir.
+- Bir request'e bir response döner.
+
+Http/2: Dosyalar için tüm istekler tek seferde toplu olarak yapılabilmektedir. Böylece açılış hızı  artmakta, süresi düşmektedir.
+
+Bu duruma Multiplexing  denmektedir. Teknik olarak, tek bir TCP bağlantısı üzerinde yapılan birden çok ve paralel request ve response yeteneği olarak yorumlanabilir. 
+
+- Client ile server arasındaki iletişim binary formattaki küçük frame'lere ayrılmaktadır. Bu duruma Binary Protokol denmektedir.
+
+- Her request'te header'lar HPACK ile sıkıştırılarak gönderilmektedir. Bu duruma Header Compression denmektedir.
+
+- Bir request'e karışık birden fazla response alınabilir. Server Push.
+
+gRPC; CPU, memory ve bandwidth kullanımınının önemli ve kritik olduğu uygulamalarda JSON yerine binary formatta çalıştığı için tercih edilebilecek bir teknolojidir.
+
+- gRPC, transfer edilecek dataları Google tarafından geliştirilmiş, binary serialization protokolü olan Protocol Buffer(protobuf) kullanarak iletmekte ve serialize ve deserialize etmektedir.
+
+- Yani datayı JSON yahut XML gibi text yerine binary formata çevirmekte ve diğer formatlara göre hatrı satılır miktarda hız ve performans elde edebilmektedir.
+
+Binary format her ne kadar JSON gibi kolay okunabilir bir format olmasa da JSON'a nazaran daha hızlı işlenebildiğinden ve ayrıca herhangi bir string parsing işleminin olmamasından dolayı tercih edilmektedir.
+
+İhtiyaç doğrultusunda gRPC, JSON gibi text tabanlı formatları da destekleyebilmektedir.
+
+---
+
+Neden gRPC Kullanmalıyız?
+
+- Günümüzde yoğun bir şekilde uygulama geliştirme yaklaşımı olarak benimsenen microservice yapılanması, sistemin gelişim sürecini her ne kadar dinamize etse de bir o kadar da servisler arası iletişim hızını monolitik yaklaşıma binaen oldukça düşürmektedir.
+
+- Bu durum bizlere klasik Restful mimarisinden ziyade daha hızlı bir altyapı ihtiyacı hissettirmekte ve mümkün mertebe iletişim hızımızı güçlendirecek farklı teknolojilere yönlendirmektedir.
+
+- Nihayetinde Restful service'ler çoğunlukla external(dış) bir client tarafından consume edilmek için daha uygundur ve text-based messaging'e dayandığı için internal(iç) service iletişimine pekte yatkın bir eçenek değildir. Çünkü hız ön plandadır.
+
+- Haliyle dış dünya tarafından tüketilmeyen projelerde Restrful'dan ziyade binary-based messaging'i benimseyen gRPC'yi kullanmamız, bizleri iletişim hızı açısından monolitik'e en yakın seviyeye çıkarmaktadır diyebiliriz.
+
+gRPC sayesinde Restful'ın etkisini yitirdiğini düşünmek yanlıştır. En nihayetinde external client'lar tarafından consume edilen uygulamalarda Restful mimarisi hala en kolay, kullanışlı ve efektif çözümdür.
+
+---
+
+IoT(Internet of Things) Çağında gRPC
+
+- Cihazlar arası iletişim içinde gRPC iyi bir seçenektir.
+
+- Ayrıca gRPC dilden bağımsız birbiriyle performanslı iletişim kurabilen uygulamalar geliştirmemizi sağlayabilmekte ve bundan daha da mühim olan birden fazla dil tarafından desteklenebilmektedir. Desteklenen diller; C#, C++, Java, Pythın vs. şeklinde özetlenebilir.
+
+---
+
+gRPC'nin Avantajları Ekstra
+
+- Yapılan optimizasyonlar neticesinde Http/1 kullanan Restful servislere nazaran 2.5 kat daha hızlı olduğu tespit edilmiştir.
+
+---
+
+Protocol Buffers(Protobuf) 
+
+Google'ın geliştirdiği ve hala geliştirmekte olduğu bir binary serialization protokolüdür.
+
+- Özünde bir Arayüz Tanımalama dili/Interface Definition Language(IDL)'dir.
+
+Kullanılan platform ve programlama dili farkını gözetmeksizin, client ve server arasında haberleşmeyi sağlayabilmek için IDL compiler satesinde her iki tarafa da (client ve server) 'stub) ismi verilen gerekli arayüzlerin oluşturulmasını sağlayan bir dildir.
+
+İçerik olarak gRPC servis tanımalrını ve import edilen paket tanımlarını ve iletişim sürecinde kullanılacak olan mesaj tanımlarını tutmaktadır.
+
+---
+
+gRPC ve Restful Farkları
+
+- Rest servislerde yapılan request neticesinde response'un alınabilmesi için gönderilen tüm dataların topyekün işlenmesi gerekmektedir. Halbuki gRPC'de ise yapılan request neticesinde response, tüm dataların işlenmesini beklemeksizin alınabilmekte ve veriler parça parça işlendikçe bütünden bağımsız bir şekilde response edilmektedir. Bu durum gRPC'de Data Stream olarak nitelendirilmektedir.
+
+- gRPC isteklerinde encoding ve decoding işlemleri istemcide gerçekleştirilmektedir. Böylece bu işlemlerin yükü serverdan arındırılmış olmaktadır.
+
+- gRPC'de farklı platformlar ve diller arası tür dönüşümleri için serialization ve deserialization yapmaya gerek yoktur. Bunun nedeni protokol üzerinden veri tipinin önceden belirlenmiş olmasıdır ve hedef dile ait kodun ilgili protokol üzerinden(protobuf) üretilmesindendir. Nihayeinde hem client'ın hem de server'ın kodlarını inşa eden protobuf protokolü her iki uyhulamanın da diline uygun sevisleri inşa edecek ve böylece iletişim sürecinde ekstra bir dönüşüme gerek duymayacaktır.
+
+- gRPC avantajları olduğu kadar şimdilik dezavantajlara da sahiptir. IIS ve Azure App Service üzerinde barındırılamamakta lakın Kestrel tarafından desteklenmektedir.
+
+- Restful servislerde tarayıcı desteği varken, gRPC şimdilik kısmı bir desteğe sahiptir.
+
+---
+
+- gRPC'de server ve client arasındaki haberleşme için iletilecek mesajın türünü ve iletim yöntemini bildirecek bir servis sözleşmesi gerekmektedir. Bu sözleşme her iki uygulamada da (client ve server) 
+'proto' dosyası olarak ayarlanmalıdır.
+
+---
+
+gRPC Konseptleri ve Client/Server Arasındaki İletişim Tipleri Nelerdir?
+
+Unary Yöntemi
+
+- Client'ın server'a tek bir istek gönderdiği ve normal bir işlev çağrısı gibi tek bir yanıt geri aldığı RPC türüdür. (klasik restrful davranışı sergileyebilmektedir.)
+
+Client -> Server
+	   <-
+	   
+---
+
+Server Streaming Yöntemi
+
+- Client'ın server'a tek bir istek gönderdiği ve server'ın stream dönmeye başladığı bir RPC türüdür.
+
+Client -------> Server
+       <- - - -
+	   
+---
+
+Client Streaming Yöntemi
+
+- Client'ın server'a stream mesaj gönderdiği ve server'ın tek bir response döndürüğü RPC türüdür. yani Client birden çok mesaj gönderiyor, server buna karşılık tek bir cevap gönderiyor. 
+
+Client - - - -> Server
+       <-------
+	   
+---
+
+Bi-directional Streaming
+
+- Client'ın server'a stream mesaj gönderdiği ve server'ın stream response döndürdüğü RPC türüdür. Yani hem client hem de server karşılıklı message streaming gerçekleştirmektedir ve böylece birden çok mesaj transferi sağlayabilmektedir. (bkz. duplex messaging)
+
+Client - - - -> Server
+       <- - - -
+
+---	
+	
+gRPC Workflow
+
+Protobuf  ->  Compiler  -> Java
+
+File		  (protoc)	-> Go     	  	   -->gRPC Server
+											->gRPC Client
+						-> Ruby	  		
+						
+1.Define    2.Compile   3. Generate Code	4. IMplement					
+
+gRPC sistemi iletişim sağlamadan önce metadata denilen yapılanmaları gönderir. Ardından yukarıdaki iletişim yöntemleri devreye girecektir.
+
+Not: Metadata bir sistem kaynağındaki ya da veri ögeleri hakkındaki datalardır. Metadatalar farklı alanlar için farklı verileri temsil eder.
+
+---
+
+Proto Nedir?
+
+- Client ile server arasındaki mesajlaşma türlerini, servis türünü vs yani gerekli tüm arayüzleri oluşturmamızı sağlayan ortak bir zemindir, kontrattır, protokoldür.
+
+- Client ile server arasındaki mesajlaşma türünü bildirir.
+
+gRPC uygulamalarında yapılması gereken ilk şey Proto'nun hangi mesajlaşma türünü tasarlayacağını belirtmektir.
+
+Proto, dil tarafından desteklenen proto compiler tarafından compile edildikten sonra ilgili projenin fitratına uygun servisleri, mesaj türlerini yani gerekli arayüzleri oluşturan ve böylece sözleşme gereği olan sınıfları otomatik generate eden bir yapılanmadır.
+
+---
+
+Powershell'de istenilen dizinde;
+
+dotnet new grpc --name grpcServer
+
+ve
+
+dotnet new console --name grpcClient ile kullanacağımız gRPC projesi için gerekli dosyaları oluşturalım ve Studio Code ile açalım.
+
+grpcServer'da Protos klasörünü incelersek greet.proto isimli bir hazır proto görürüz.
+
+syntax = "proto3"; 
+
+option csharp_namespace = "grpcServer"; //C# ortamında hangi namespace altında geliştirme yapılacak.
+//Oluşturulacak interface'ler bu namespace altında oluşturulacaktır.
+
+package greet; 
+
+// The greeting service definition.
+service Greeter { //hangi isimde bir service oluşturulacak.
+  // Sends a greeting
+  rpc SayHello (HelloRequest) returns (HelloReply);
+  /*Bu proto compile edildiğinde generate edilecek servisin içerisinde bir tane sayHello isimli 
+  bir metot olacaktır. Bu metot ile client, servera bir istekte bulunabilir.
+  Yani serverda bu isimde bir metot olacak, client bu metodu çağıracaktır.
+  Client bu metodu çağırırken göndereceği veri türü HelleRequest türünden olacak.
+  returns keyword'ünden sonra belirtilen message yani HelloReply ise response edilecek türü belirtir. 
+  rpc MetotAdi(RequestEdilecekDataTürü) returns (ResponseEdilecekDataTürü) imzası sayesinde client
+  ile server arasında nasıl bir iletişim sağlanacağını ve hangi türde mesajların taşınacağını yani ilgili client ve serverda bu mesajları karşılayacak hangi türde sınıfların oluşturulacağını bildirmiş oluyoruz.
+  
+  */  
+}
+
+//message olarak gördüğümüz her bir tanımlama client ile server arasındaki veri iletişiminde kullanılacak türü bildirir.
+// The request message containing the user's name.
+message HelloRequest { //request'lerde verinin türünde HelloRequest'i kullan.
+  string name = 1; //taşınacak olan message'ların türlerinin içerisindeki property'ler.
+}
+
+// The response message containing the greetings.
+message HelloReply { //HelloReply'de ise response'tan gelen verinin türünde kullan.  
+  string message = 1; //mesajların binary formata dönüştürüleceğinden sıralı bir şekilde
+					  //dönüştürüleceğinden dolayı, hangi property'nin hangi sırada 
+					  //dönüştürüleceğinini 1-2-3-4 gibi manuel olarak belirtmemiz gereklidir.
+}
+
+Tanımlanan proto dosyasını burada tutmak yetmeyecektir.
+
+Ayrıca ilgli uygulamanın csproj dosyasında Protobuf iteminde bildirmemiz gereklidir.
+
+gRPCServer.csproj;
+
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Protos\greet.proto" GrpcServices="Server" />
+	<!-- ilgili proto dosyası uygulamaya tür olarak Server uygulamasıdır diye bildirilmiştir. -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" Version="2.49.0" />
+  </ItemGroup>
+
+</Project>
+
+Aynısını Client tarafında yapacağız fakat Server yerine Client olarak belirteceğiz.
+Şimdilik Server tarafını didiklemeye devamke.
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" Version="2.49.0" />
+  </ItemGroup>
+  
+yukarıdaki kod satırında görüldüğü üzere Grpc.AspNetCore kütüphanesi sayesinde hem Proto dosyasını server tabanında compile edebiliyor hem de gRPC kütüphanesini ilgili uygulamaya kazandırabiliyoruz.
+
+Uygulamayı build ettik ve ilgili proto, mevcuttaki proto compiler tarafından compile edildi ve gerekli dosyalar generate edildi. İŞte bu generate edilme neticesinde kullacağımız service'i GreeterService olarak verdiğini görürüz.
+
+Services -> GreeterService.cs;
+
+using Grpc.Core;
+using grpcServer;
+
+namespace grpcServer.Services;
+
+public class GreeterService : Greeter.GreeterBase 
+//Proto'da Greeter ismi olduğundan Greeter.GreeterBase isminde oluşturdu. Mahmut deseydik MahmutBase..
+{
+    private readonly ILogger<GreeterService> _logger;
+    public GreeterService(ILogger<GreeterService> logger)
+    {
+        _logger = logger;
+    }
+
+    public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
+    {
+        return Task.FromResult(new HelloReply
+        {
+            Message = "Hello " + request.Name
+        });
+    }
+}
+
+Arka planda, oluşturmuş olduğumuz service ismi, base isminde bir service oluşturuyor.
+Bu servisten kendi manuel oluşturmuş olduğumuz servisimizi türetecek ve
+ilgili servisin içerisinde proto dosyasında tanımlamış olduğumuz metodu override edip gerekli operasyonları gerçekleştireceğiz. 
+
+Proto dosyası compile edildiğinde generate edilen dosyalar, servisler, interface'ler vs. 
+obj->Debug->Protos klasörünün altındadır.
+
+Generate edilen yapılan hiçbir zaman developer tarafından değiştirilmez.
+
+Startup.cs incelemesi;
+
+Yeni sürümlerde Startup.cs kaldırılmıştır. Onun yerine program.cs içerisinde ilgili çalışmaları görebiliriz.
+
+Program.cs;
+
+using grpcServer.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddGrpc(); //bunu eklemezsek uygulama gRPC kütüphanesini çalıştırmaz.
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+app.MapGrpcService<GreeterService>(); //gRPC servisinin Client'dan gelecek istekleri ne şekilde
+//alacağını bildirebilmek için oluşturmuş olduğumuz service'i (buradaki GreeterService gibi) 
+//burada MapGrpcService'e generic olarak vermemiz gereklidir.
+
+app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
+
+app.Run();
+
+----
+
+Client Tarafı
+
+Bu kısımda çalışma yapabilmek için gereken kütüphaneler vardır.
+
+- Google.Protobuf : Protobuf serialization ve deserialization işlemlerini yapan kütüphanelerdir.
+- Grpc.Net.Client : .NET Mimarisine uygun gRPC kütüphanesidir.
+- Grpc.Tools : Proto dosyalarını derlemek için gerekli compiler'i ve diğer araçları içerir.
+
+NuGET'ten indirdikten sonra,
+
+Server tarafında bulunan greet.proto dosyasını kopyalayıp Client'a yapıştıralım. (kendimiz de oluşturabiliriz.)
+
+Bir sözleşme-contract işlevi göreceğinden oluşturulan proto'ların birebir aynı olması gerekmektedir.
+
+Yapıştırdığımız proto'yu csproj'a ekleyelim.
+
+grpcClient.csproj;
+
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!-- csproj'a eklememiz de gerekli. -->
+  <ItemGroup>
+    <Protobuf Include="greet.proto" GrpcServices="Client" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.22.3" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.53.0-pre1" />
+    <PackageReference Include="Grpc.Tools" Version="2.54.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>
+
+Ayrıca yukarıda ilgili kütüphanelerin eklendiğini de görebiliriz.
+
+Terminalden dotnet build' edersek Debug klasörünün altında ilgili dosyaların oluşturulduğunu görürüz.
+
+---
+
+Client'tan Request'te Bulunma ve Response'u Alma
+
+Client Program.cs;
+
+using Grpc.Net.Client;
+using grpcServer;
+
+//Öncelikle bu iletişim sağlayacak bir channel oluşturmamız lazım.
+var channel = GrpcChannel.ForAddress("https://localhost:5001"); 
+//server-launchsettings.json'dan değiştirilebilir.
+
+//Server 5001'de ayağa kalktı. Buradaki gRPC servisine bağlan demiş olduk.
+
+//Şimdi Client'ı oluşturalım.
+var greetClient = new Greeter.GreeterClient(channel);
+//Artık bu greetClient üzerinden gerekli request ve response işlemlerini yapacağız.
+
+//Request gönder
+
+HelloReply result = await greetClient.SayHelloAsync(new HelloRequest
+{
+    Name = "Cagatay'dan selamlar Request'i"
+});
+
+//Bu istek sonucunda bize server'dan HelloReply döneceğini biliyoruz. SayHelloAsync'e baktığımızda da bunu onaylayabiliriz.
+//HelloReply helloReply ile de sunucudan gelecek mesajı elde edebiliriz.
+
+System.Console.WriteLine(result.Message); //sonucu ekrana yazdıralım.
+
+-
+
+Burada Server tarafındaki GreeterService.cs'e bakarsak;
+...
+	public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
+    {        
+		System.Console.WriteLine(request.Name); //burada ise Name'i yakayabiliriz.
+
+        return Task.FromResult(new HelloReply
+        {		
+            Message = "Hello " + request.Name
+        });
+    }...
+	
+Request'de Name'e ne yazdıysak başına Hello ekleyip bize response'u döndürecektir.
+
+Server Terminalinde;
+Cagatay'dan selamlar Request'i
+
+ve
+
+Client Terminalinde;
+Hello Cagatay'dan selamlar Request'i
+
+yazdığını görürüz.
+
+---
+
+Unary RPC Türü ile Client-Server İLetişimini Sağlamak
+
+Sistemin hazır sunduğundan ziyade kendi proto'muzu oluşturalım.
+
+grpcServer -> Protos -> message.proto açalım.
+
+syntax = "proto3"; 
+
+option csharp_namespace = "grpcMessageServer";
+
+package message;
+
+service Message {
+  rpc SendMessage (MessageRequest) returns (MessageResponse);
+}
+
+message MessageRequest {
+  string name = 1;
+  string message = 2;
+}
+
+message MessageResponse {
+  string message = 1;
+}
+
+gibi bir modelleme yapalım.
+
+Bu proto'yu server'ın csproj'unda bildirmemiz lazım.
+
+...
+  <ItemGroup>
+    <Protobuf Include="Protos\greet.proto" GrpcServices="Server" />
+    <!-- ilgili proto dosyası uygulamaya tür olarak Server uygulamasıdır diye bildirilmiştir. -->
+    <Protobuf Include="Protos\message.proto" GrpcServices="Server" />
+  </ItemGroup>
+  
+Server'ı derlediğimiz zaman proto dosyasında ne varsa generate edilecek ve kullanılabilecektir.
+
+Terminal'de dotnet build ile build edelim.
+
+Build ettikten sonra Message.cs ve MessageGrpc.cs dosyalarının Debug-Protos'da oluşturulduğunu görürüz.
+(gerekli sınıflar, türler, arayüzler hepsi otomatik generate edilmiştir.)
+
+---
+
+Şimdi service'ini eklememiz lazım.
+
+Server'da Services klasörünün altında MessageService.cs oluşturalım.
+
+using Grpc.Core;
+using grpcServer;
+using grpcMessageServer;
+
+namespace grpcServer.Services;
+
+public class MessageService : Message.MessageBase
+{
+    public override async Task<MessageResponse> SendMessage(MessageRequest request, ServerCallContext context)
+    {
+        System.Console.WriteLine($"Message : {request.Message} | Name : {request.Name}");
+
+        return new MessageResponse {
+            Message = "Mesaj başarıyla alınmıştır."
+        };
+    }
+}
+
+
+Son olarak Startup.cs'de (ya da Program.cs) service'i bildirmemiz lazım.
+
+...
+// Configure the HTTP request pipeline.
+app.MapGrpcService<GreeterService>();
+app.MapGrpcService<MessageService>();
+...
+
+Server tarafında iş bitti.
+
+Client tarafına dönersek;
+
+message.proto dosyasını grpcClient'a kopyalayalım. 
+
+syntax = "proto3"; 
+
+option csharp_namespace = "grpcMessageClient";
+
+package message;
+
+service Message {
+  rpc SendMessage (MessageRequest) returns (MessageResponse);
+}
+
+message MessageRequest {
+  string name = 1;
+  string message = 2;
+}
+
+message MessageResponse {
+  string message = 1;
+}
+
+Sadece namespace'i farklı kullanabiliriz. Burada grpcMessageClient namespace'ini kullandık.
+Geri kalan her şey Server tarafındaki proto ile aynı olmalı.
+
+-
+
+service Message {
+  rpc SendMessage (MessageRequest) returns (MessageResponse);
+}
+
+'dan anladığımız üzere Unary türü ile çalışıyoruz. Request <-> Response
+
+grpcClient.csproj'a da ekleyelim;
+...
+  <!-- csproj'a eklememiz de gerekli. -->
+  <ItemGroup>
+    <Protobuf Include="greet.proto" GrpcServices="Client" />
+    <Protobuf Include="message.proto" GrpcServices="Client" />
+  </ItemGroup>
+  
+Client Program.cs'i;
+
+using Grpc.Net.Client;
+using grpcMessageClient;
+using grpcServer;
+
+//Öncelikle bu iletişim sağlayacak bir channel oluşturmamız lazım.
+var channel = GrpcChannel.ForAddress("https://localhost:5001"); 
+//server-launchsettings.json'dan değiştirilebilir.
+
+var messageClient = new Message.MessageClient(channel);
+MessageResponse response = await messageClient.SendMessageAsync(new MessageRequest{
+    Message = "Merhaba Dünyalı",
+    Name = "Çağatay"
+});
+
+System.Console.WriteLine(response.Message);
+
+...
+
+Uygulamayı iki tarafta da build edip run ettiğimizde,
+
+Terminal'de
+
+Server tarafında,
+Message : Merhaba Dünyalı | Name : Çagatay
+
+Client tarafında,
+Mesaj basarıyla alınmıstır.
+
+Request'e karşılık Response dönen Unary mesaj türünü inceledik.
+
+---
+
+Server Streaming RPC Türü ile Client - Server İletişimini Sağlamak
+
+Server ve Client tarafındaki message.proto'da sadece;
+
+service Message {
+  rpc SendMessage (MessageRequest) returns (stream MessageResponse);
+}
+
+satırını güncelleyelim ve Server'da MessageService.cs'de;
+
+using Grpc.Core;
+using grpcServer;
+using grpcMessageServer;
+
+namespace grpcServer.Services;
+
+public class MessageService : Message.MessageBase
+{
+    public override async Task SendMessage(MessageRequest request, IServerStreamWriter<MessageResponse> responseStream, ServerCallContext context)
+    {
+        System.Console.WriteLine($"Message : {request.Message} | Name : {request.Name}");
+
+        for (int i = 0; i < 10; i++)
+        {
+            await Task.Delay(200);
+            await responseStream.WriteAsync(new MessageResponse {
+                Message = "Merhaba" + i
+            });
+        }
+    }
+
+}
+
+değişikliklerini yapalım.
+
+Client tarafındaki Program.cs'de ise;
+
+using Grpc.Net.Client;
+using grpcMessageClient;
+using grpcServer;
+
+var channel = GrpcChannel.ForAddress("https://localhost:5001"); 
+//Server Streaming
+
+var messageClient = new Message.MessageClient(channel);
+
+var response = messageClient.SendMessage(new MessageRequest {
+    Message = "Merhaba",
+    Name = "Çağatay"
+});
+
+CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+
+while(await response.ResponseStream.MoveNext(cancellationTokenSource.Token)){
+    System.Console.WriteLine(response.ResponseStream.Current.Message);
+}
+
+yapıp iki tarafı da build ve run edelim.
+
+Server'da;
+Message : Merhaba | Name : Gençay
+
+Client'da;
+Merhaba0
+Merhaba1
+Merhaba2
+Merhaba3
+Merhaba4
+Merhaba5
+Merhaba6
+Merhaba7
+Merhaba8
+Merhaba9
+
+---
+
+Client Streaming RPC Türü ile Client - Server İletişimini Sağlamak
+
+Yine aynı message.proto üzerinden değişiklikler yaparak ilerleyelim.
+
+service Message {
+  rpc SendMessage (stream MessageRequest) returns (MessageResponse);
+}
+
+ve MessageService.cs'de;
+
+using Grpc.Core;
+using grpcServer;
+using grpcMessageServer;
+
+namespace grpcServer.Services;
+
+public class MessageService : Message.MessageBase
+{
+    //Server Streming
+    // public override async Task SendMessage(MessageRequest request, IServerStreamWriter<MessageResponse> responseStream, ServerCallContext context)
+    // {
+    //     System.Console.WriteLine($"Message : {request.Message} | Name : {request.Name}");
+
+    //     for (int i = 0; i < 10; i++)
+    //     {
+    //         await Task.Delay(1000);
+    //         await responseStream.WriteAsync(new MessageResponse {
+    //             Message = "Merhaba" + i
+    //         });
+    //     }
+    // }
+
+    //Client Streaming
+
+    public override async Task<MessageResponse> SendMessage(IAsyncStreamReader<MessageRequest> requestStream, ServerCallContext context)
+    {
+        while(await requestStream.MoveNext(context.CancellationToken)) {
+            System.Console.WriteLine($"Message : {requestStream.Current.Message} | Name : {requestStream.Current.Name}");
+        }
+
+        return new MessageResponse {
+            Message = "Veri alınmıştır."
+        };
+    }
+}
+
+değişikliklerini yapıp Client tarafınaa geçelim.
+
+Client Program.cs;
+
+using Grpc.Net.Client;
+using grpcMessageClient;
+using grpcServer;
+
+var channel = GrpcChannel.ForAddress("https://localhost:5001"); 
+
+//Client Streaming
+
+var messageClient = new Message.MessageClient(channel);
+
+var request = messageClient.SendMessage();
+
+for (int i = 0; i < 10; i++)
+{
+    await Task.Delay(1000);
+    await request.RequestStream.WriteAsync(new MessageRequest {
+        Name = "Çağatay",
+        Message = "Mesaj " + i
+    });
+}
+
+
+//stream datanın sonlandığnı da belirtmemiz lazım.
+await request.RequestStream.CompleteAsync();
+
+System.Console.WriteLine((await request.ResponseAsync).Message);
+
+İki tarafı da build ve run edersek;
+
+Server tarafında;
+
+Message : Mesaj 0 | Name : Çagatay
+Message : Mesaj 1 | Name : Çagatay
+Message : Mesaj 2 | Name : Çagatay
+Message : Mesaj 3 | Name : Çagatay
+Message : Mesaj 4 | Name : Çagatay
+Message : Mesaj 5 | Name : Çagatay
+Message : Mesaj 6 | Name : Çagatay
+Message : Mesaj 7 | Name : Çagatay
+Message : Mesaj 8 | Name : Çagatay
+Message : Mesaj 9 | Name : Çagatay
+
+Client tarafında;
+
+Veri alınmıstır.
+
+---
+
+Bi-directional Streaming RPC Türü ile Client-Server İletişimini Sağlamak
+
+message.proto dosyasında her iki tarafta da;
+
+service Message {
+  rpc SendMessage (stream MessageRequest) returns (stream MessageResponse);
+}
+
+ve MessageService.cs;
+
+	//Bi-directional streaming'de ayrı ayrı çalışma yapmamız lazım. Çünkü biri bitmeden diğerini
+	//başlatabilmek için ayrı bir askenron süreç başlatmamız gerekli.
+    public override async Task SendMessage(IAsyncStreamReader<MessageRequest> requestStream, IServerStreamWriter<MessageResponse> responseStream, ServerCallContext context)
+    {
+	//request data'yı farklı,
+        var task1 = Task.Run(async () =>
+        {
+            while (await requestStream.MoveNext(context.CancellationToken))
+            {
+                System.Console.WriteLine($"Message : {requestStream.Current.Message} | Name : {requestStream.Current.Name}");
+            }
+        });
+		
+		//response datayı farklı...
+        for (int i = 0; i < 10; i++)
+        {
+            await Task.Delay(1000);
+            await responseStream.WriteAsync(new MessageResponse { Message = "Mesaj " + i});
+        }
+		await task1;
+    }
+	
+Client tarafında Program.cs;
+
+
+//Bi directional streaming
+
+...
+var messageClient = new Message.MessageClient(channel);
+var request = messageClient.SendMessage();
+
+var task1 = Task.Run(async() => {
+    for (int i = 0; i < 10; i++)
+    {
+        await Task.Delay(1000);
+        await request.RequestStream.WriteAsync(
+            new MessageRequest {
+                Name = "Çağatay",
+                Message = "Mesaj " + i
+            }
+        );
+    }
+});
+CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+while (await request.ResponseStream.MoveNext(
+    cancellationTokenSource.Token
+))
+{
+    System.Console.WriteLine(request.ResponseStream.Current.Message);
+}
+
+await task1;
+await request.RequestStream.CompleteAsync();
+
+Build ve Run sonucunda;
+
+Server'da;
+Message : Mesaj 0 | Name : Çagatay
+Message : Mesaj 1 | Name : Çagatay
+Message : Mesaj 2 | Name : Çagatay
+Message : Mesaj 3 | Name : Çagatay
+Message : Mesaj 4 | Name : Çagatay
+Message : Mesaj 5 | Name : Çagatay
+Message : Mesaj 6 | Name : Çagatay
+Message : Mesaj 7 | Name : Çagatay
+Message : Mesaj 8 | Name : Çagatay
+Message : Mesaj 9 | Name : Çagatay
+
+Client'da;
+Mesaj 0
+Mesaj 1
+Mesaj 2
+Mesaj 3
+Mesaj 4
+Mesaj 5
+Mesaj 6
+Mesaj 7
+Mesaj 8
+Mesaj 9
